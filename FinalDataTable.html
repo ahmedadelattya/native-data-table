@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Data Table</title>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"
+            integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"
+            integrity="sha512-ykZ1QQr0Jy/4ZkvKuqWn4iF3lqPZyij9iRv6sGqLRdTPkY69YX6+7wvVGmsdBbiIfN/8OdsI7HABjvEok6ZopQ=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <!-- Bootstrap CSS -->
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            crossorigin="anonymous"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+            integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"
+        ></script>
+        <script>
+            $(function () {
+                // function to get Data And Store it In Local Storage
+
+                function getTableData() {
+                    // ajax call:
+                    $.ajax({
+                        /* url: "our file.json",*/
+                        url: "https://jsonplaceholder.typicode.com/posts",
+                        success: function (_data) {
+                            // Saving Data in local Storage
+                            localStorage.setItem(
+                                "myData",
+                                JSON.stringify(_data)
+                            );
+                        },
+                        error: function (_error) {
+                            console.log("Error");
+                        },
+                    });
+                }
+                // retreiving Data From Local storage and Push it Into Table
+
+                retreivedData = JSON.parse(localStorage.getItem("myData"));
+                $(retreivedData).each(function (_, post) {
+                    $(
+                        `<tr><td>${post.userId}</td><td>${post.id}</td><td>${post.title}</td><td>${post.body}</td><td><button class='btn btn-danger delete' >Delete</button></td><td><button class='btn btn-secondary update' data-bs-toggle="modal" data-bs-target="#staticBackdrop">Update</button></td></tr>`
+                    ).appendTo($("table tbody"));
+                });
+                // delete Button Functionality
+                $("button.delete").click(function (e) {
+                    // deleting Selected row
+                    this.parentNode.parentNode.remove();
+                    let SelectedRowID =
+                        this.parentNode.parentNode.children[1].innerText;
+                    // detecting the selected obj from the Data and Deleting it
+                    $(retreivedData).each(function (_, post) {
+                        if (SelectedRowID == post.id) {
+                            index = retreivedData.indexOf(post);
+                            retreivedData.splice(index, 1);
+                        }
+                    });
+                    //Updating The local storage With New Retrieved Data AFter Deletion
+                    localStorage.setItem(
+                        "myData",
+                        JSON.stringify(retreivedData)
+                    );
+                }); // end of delete function
+
+                // Update Button Functionality
+
+                $("button.update").click(function (e) {
+                    // Displaying Selected row Values in Modal
+
+                    const row = this.parentNode.parentNode;
+
+                    document.getElementById("userID").value = $(row)
+                        .children("td:eq(0)")
+                        .text();
+                    document.getElementById("ID").value = $(row)
+                        .children("td:eq(1)")
+                        .text();
+                    document.getElementById("Title").value = $(row)
+                        .children("td:eq(2)")
+                        .text();
+                    document.getElementById("Body").value = $(row)
+                        .children("td:eq(3)")
+                        .text();
+                    let SelectedRowID =
+                        this.parentNode.parentNode.children[1].innerText;
+
+                    $("button#subUpdate").click(function (e) {
+                        var newUserId = document.getElementById("userID").value;
+                        var newTitle = document.getElementById("Title").value;
+                        var newBody = document.getElementById("Body").value;
+                        $(row).children("td:eq(0)").text(newUserId);
+                        $(row).children("td:eq(2)").text(newTitle);
+                        $(row).children("td:eq(3)").text(newBody);
+
+                        // detecting the updated Obj Value and Push it to local storage
+                        $(retreivedData).each(function (_, post) {
+                            if (SelectedRowID == post.id) {
+                                index = retreivedData.indexOf(post);
+                                let newRow = {
+                                    userId: newUserId,
+                                    id: SelectedRowID,
+                                    title: newTitle,
+                                    body: newBody,
+                                };
+                                retreivedData.splice(index, 1, newRow);
+                            }
+                        });
+                        //Updating The local storage With New Retrieved Data AFter Updating
+                        localStorage.setItem(
+                            "myData",
+                            JSON.stringify(retreivedData)
+                        );
+                    });
+                }); // end of update function
+
+                //search Function
+                $(":text:eq(0)").keyup(function () {
+                    // storing the input from user
+                    var userInput = $(":text:eq(0)").val();
+                    //getting the values of each td in  a Row
+                    $("tbody tr").each(function () {
+                        var ID = $(this).children("td:eq(0)").text();
+                        var FirstName = $(this).children("td:eq(1)").text();
+                        var LastName = $(this).children("td:eq(2)").text();
+                        var City = $(this).children("td:eq(3)").text();
+                        var Company = $(this).children("td:eq(4)").text();
+                        // comparing the userinput with each td value for Each Row
+                        if (
+                            ID.toLocaleLowerCase().indexOf(
+                                userInput.toLocaleLowerCase().trim()
+                            ) != -1 ||
+                            FirstName.toLocaleLowerCase().indexOf(
+                                userInput.toLocaleLowerCase().trim()
+                            ) != -1 ||
+                            LastName.toLocaleLowerCase().indexOf(
+                                userInput.toLocaleLowerCase().trim()
+                            ) != -1 ||
+                            City.toLocaleLowerCase().indexOf(
+                                userInput.toLocaleLowerCase().trim()
+                            ) != -1 ||
+                            Company.toLocaleLowerCase().indexOf(
+                                userInput.toLocaleLowerCase().trim()
+                            ) != -1
+                        ) {
+                            $(this).show(200);
+                        } else {
+                            $(this).hide(200);
+                        }
+                    });
+                }); // end of Search Function
+                getTableData();
+            }); // end of Load
+
+            function sorting(colNumber) {
+                // Collecting date of The Column That used for Sorting
+                array = [];
+                $("table tbody tr").each(function () {
+                    array.push($(this).children(`td:eq(${colNumber})`).text());
+                });
+                // determine Wether To sort by Numbers Or Chars and Sorting the Values of The Column
+                if (colNumber == 0 || colNumber == 1) {
+                    sortedArray = array.sort((a, b) => {
+                        return b - a;
+                    });
+                } else if (colNumber == 2 || colNumber == 3) {
+                    sortedArray = array.sort();
+                }
+                // Comparing The value of the selected Column with with Sorted Array
+                let i = 0;
+                $("table tbody tr").each(function () {
+                    $("table tbody tr").each(function () {
+                        // getting the element that its Value equals the sorted array first value and append it to the Table
+                        if (
+                            $(this).children(`td:eq(${colNumber})`).text() ==
+                            sortedArray[i]
+                        ) {
+                            $("table tbody").append($(this));
+                            i++;
+                        }
+                    });
+                });
+            }
+        </script>
+        <style>
+            input {
+                margin: 10px;
+                height: 50px;
+                border: 2px double gold;
+            }
+            table {
+                width: 90vw !important;
+            }
+        </style>
+    </head>
+    <body>
+        <input type="text" placeholder="Enter Any Value Of Any Column " />
+        <table class="table table-striped table-dark mx-auto">
+            <thead>
+                <tr>
+                    <th scope="col" onclick="sorting(0);">User_ID</th>
+                    <th scope="col" onclick="sorting(1);">ID</th>
+                    <th scope="col" onclick="sorting(2);">Title</th>
+                    <th scope="col" onclick="sorting(3);">Body</th>
+                    <th scope="col">Delete</th>
+                    <th scope="col">Update</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+        </table>
+
+        <!-- Modal -->
+        <div
+            class="modal fade hide"
+            id="staticBackdrop"
+            data-bs-backdrop="static"
+            data-bs-keyboard="false"
+            tabindex="-1"
+            aria-labelledby="staticBackdropLabel"
+            aria-hidden="true"
+        >
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="staticBackdropLabel">
+                            Update Current Info
+                        </h1>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="" class="alert">
+                            <div class="mb-3 mt-3 text-start">
+                                <label for="userID" class="form-label"
+                                    >User_ID:</label
+                                >
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="userID"
+                                    name="userID"
+                                    required
+                                />
+                            </div>
+                            <div class="mb-3 mt-3 text-start">
+                                <label for="ID" class="form-label">ID:</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="ID"
+                                    name="ID"
+                                    required
+                                    disabled
+                                />
+                            </div>
+                            <div class="mb-3 mt-3 text-start">
+                                <label for="Title" class="form-label"
+                                    >Title</label
+                                >
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="Title"
+                                    name="Title"
+                                    required
+                                />
+                            </div>
+                            <div class="mb-3 mt-3 text-start">
+                                <label for="Body" class="form-label"
+                                    >Body:</label
+                                >
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="Body"
+                                    name="Body"
+                                    required
+                                />
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal"
+                        >
+                            Close
+                        </button>
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            id="subUpdate"
+                            data-bs-dismiss="modal"
+                        >
+                            Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
